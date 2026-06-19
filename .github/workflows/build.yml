@@ -1,4 +1,5 @@
 name: Build APK
+
 sudo apt install -y \
   cmake \
   ninja-build \
