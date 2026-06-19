@@ -27,12 +27,20 @@ jobs:
           ninja-build \
           autoconf \
           automake \
-          libtool
+          libtool \
+          pkg-config
 
-    - name: Install buildozer
+    - name: Install Python dependencies
       run: |
-        pip install --upgrade pip
+        python -m pip install --upgrade pip setuptools wheel
         pip install buildozer==1.5.0 cython==0.29.37
+        pip install appdirs colorama jinja2 "sh<2.0,>=1.0" meson ninja packaging toml
+
+    - name: Pre-create buildozer spec if missing
+      run: |
+        if [ ! -f buildozer.spec ]; then
+          buildozer init
+        fi
 
     - name: Build APK
       run: |
