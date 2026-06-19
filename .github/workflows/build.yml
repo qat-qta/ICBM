@@ -1,103 +1,68 @@
 name: APK HARD LOCK BUILD
 
 on:
-  push:
-    branches: [ main ]
+push:
+branches:
+- main
 
 jobs:
-  build:
-    runs-on: ubuntu-22.04
+build:
+runs-on: ubuntu-22.04
 
-    env:
-      PIP_BREAK_SYSTEM_PACKAGES: "1"
-      DEBIAN_FRONTEND: noninteractive
+```
+steps:
+  - name: Checkout
+    uses: actions/checkout@v4
 
-    steps:
-    # =========================
-    # GET SOURCE
-    # =========================
-    - name: Checkout
-      uses: actions/checkout@v4
+  - name: Setup Python
+    uses: actions/setup-python@v5
+    with:
+      python-version: "3.10"
 
-    # =========================
-    # VERIFY PROJECT STRUCTURE
-    # =========================
-    - name: Validate project
-      run: |
-        set -e
+  - name: Setup Java 17
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: "17"
 
-        echo "Checking main.py..."
-        test -f main.py
+  - name: Verify Java
+    run: |
+      java -version
+      echo "JAVA_HOME=$JAVA_HOME"
 
-        echo "Checking buildozer.spec..."
-        test -f buildozer.spec
+  - name: Install system dependencies
+    run: |
+      sudo apt update
+      sudo apt install -y \
+        git \
+        zip \
+        unzip \
+        autoconf \
+        automake \
+        libtool \
+        pkg-config \
+        cmake \
+        ninja-build
 
-        echo "OK"
+  - name: Install Python dependencies
+    run: |
+      python -m pip install --upgrade pip setuptools wheel
+      pip install buildozer==1.5.0 cython==0.29.37
 
-    # =========================
-    # PYTHON
-    # =========================
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.10"
+  - name: Verify files
+    run: |
+      ls -la
+      test -f buildozer.spec
 
-    # =========================
-    # SYSTEM DEPENDENCIES (MINIMAL STABLE SET)
-    # =========================
-    - name: Install system deps
-      run: |
-        sudo apt update
-        sudo apt install -y \
-          git zip unzip \
-          openjdk-17-jdk \
-          cmake \
-          ninja-build \
-          autoconf \
-          automake \
-          libtool \
-          pkg-config \
-          libffi-dev \
-          libssl-dev \
-          zlib1g-dev
+  - name: Build APK
+    run: |
+      buildozer android debug
 
-    # =========================
-    # PYTHON TOOLCHAIN (LOCKED)
-    # =========================
-    - name: Install toolchain
-      run: |
-        python -m pip install --upgrade pip setuptools wheel
-
-        pip install buildozer==1.5.0
-        pip install cython==0.29.37
-        pip install python-for-android==2024.1.21
-
-        pip install --only-binary=:all: \
-          ninja==1.11.1.1 \
-          meson==1.5.1
-
-        pip install appdirs colorama jinja2 packaging toml "sh<2.0,>=1.0"
-
-    # =========================
-    # CLEAN STATE
-    # =========================
-    - name: Clean build
-      run: |
-        rm -rf .buildozer || true
-
-    # =========================
-    # BUILD (NO INIT, NO INTERACTIVE EVER)
-    # =========================
-    - name: Build APK
-      run: |
-        set -e
-        yes | buildozer -v android debug
-
-    # =========================
-    # ARTIFACT
-    # =========================
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: apk
-        path: bin/*.apk
+  - name: Upload APK
+    uses: actions/upload-artifact@v4
+    with:
+      name: apk
+      path: |
+        bin/*.apk
+        **/*.apk
+```
