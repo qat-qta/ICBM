@@ -28,15 +28,27 @@ jobs:
           autoconf \
           automake \
           libtool \
-          pkg-config
+          pkg-config \
+          libffi-dev \
+          libssl-dev \
+          zlib1g-dev
 
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip setuptools wheel
-        pip install buildozer==1.5.0 cython==0.29.37
-        pip install appdirs colorama jinja2 "sh<2.0,>=1.0" meson ninja packaging toml
 
-    - name: Pre-create buildozer spec if missing
+        # FIX CHÍNH: khóa version tránh breaking changes
+        pip install buildozer==1.5.0 cython==0.29.37
+
+        # FIX p4a stability
+        pip install "python-for-android==2024.1.21"
+
+        # tránh build ninja từ source
+        pip install --only-binary=:all: ninja meson
+
+        pip install appdirs colorama jinja2 "sh<2.0,>=1.0" packaging toml
+
+    - name: Ensure buildozer.spec exists
       run: |
         if [ ! -f buildozer.spec ]; then
           buildozer init
@@ -44,7 +56,7 @@ jobs:
 
     - name: Build APK
       run: |
-        buildozer android debug
+        buildozer -v android debug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
