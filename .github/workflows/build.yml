@@ -1,4 +1,4 @@
-name: Build APK (Stable)
+name: Build APK (Stable Final)
 
 on:
   push:
@@ -8,8 +8,12 @@ jobs:
   build:
     runs-on: ubuntu-22.04
 
+    env:
+      PIP_BREAK_SYSTEM_PACKAGES: "1"
+      BUILD_DEBUG: "1"
+
     steps:
-    - name: Checkout source
+    - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Setup Python
@@ -17,6 +21,9 @@ jobs:
       with:
         python-version: "3.10"
 
+    # =========================
+    # SYSTEM DEPENDENCIES
+    # =========================
     - name: Install system dependencies
       run: |
         sudo apt update
@@ -33,34 +40,44 @@ jobs:
           libssl-dev \
           zlib1g-dev
 
-    - name: Upgrade pip tools
+    # =========================
+    # PYTHON TOOLCHAIN (LOCKED)
+    # =========================
+    - name: Install Python build stack
       run: |
         python -m pip install --upgrade pip setuptools wheel
 
-    - name: Install locked Python build stack
-      run: |
+        # Buildozer + Cython (đúng version ổn định)
         pip install buildozer==1.5.0 cython==0.29.37
+
+        # KHÓA python-for-android (tránh master broken)
         pip install python-for-android==2024.1.21
 
-        # tránh build ninja/meson từ source (rất hay crash)
-        pip install --only-binary=:all: ninja meson
+        # ÉP binary packages (tránh compile CMake/ninja)
+        pip install --only-binary=:all: ninja==1.11.1.1 meson==1.5.1
 
+        # runtime deps
         pip install appdirs colorama jinja2 packaging toml "sh<2.0,>=1.0"
 
-    - name: Ensure buildozer spec exists
+    # =========================
+    # BUILDOZER INIT
+    # =========================
+    - name: Ensure buildozer.spec exists
       run: |
         if [ ! -f buildozer.spec ]; then
           buildozer init
         fi
 
-    - name: Fix buildozer permissions issue
-      run: |
-        mkdir -p ~/.buildozer
-
+    # =========================
+    # BUILD APK
+    # =========================
     - name: Build APK
       run: |
         buildozer -v android debug
 
+    # =========================
+    # UPLOAD RESULT
+    # =========================
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
