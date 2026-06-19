@@ -1,4 +1,4 @@
-name: Build APK (AUTO FIX FINAL)
+name: APK HARD LOCK BUILD
 
 on:
   push:
@@ -10,26 +10,32 @@ jobs:
 
     env:
       PIP_BREAK_SYSTEM_PACKAGES: "1"
-      BUILDOZER_WARN_ON_ROOT: "0"
       DEBIAN_FRONTEND: noninteractive
 
     steps:
     # =========================
-    # CHECKOUT CODE
+    # GET SOURCE
     # =========================
-    - name: Checkout repository
+    - name: Checkout
       uses: actions/checkout@v4
 
     # =========================
-    # DEBUG WORKSPACE
+    # VERIFY PROJECT STRUCTURE
     # =========================
-    - name: Debug workspace
+    - name: Validate project
       run: |
-        pwd
-        ls -la
+        set -e
+
+        echo "Checking main.py..."
+        test -f main.py
+
+        echo "Checking buildozer.spec..."
+        test -f buildozer.spec
+
+        echo "OK"
 
     # =========================
-    # PYTHON SETUP
+    # PYTHON
     # =========================
     - name: Setup Python
       uses: actions/setup-python@v5
@@ -37,9 +43,9 @@ jobs:
         python-version: "3.10"
 
     # =========================
-    # SYSTEM DEPENDENCIES
+    # SYSTEM DEPENDENCIES (MINIMAL STABLE SET)
     # =========================
-    - name: Install system dependencies
+    - name: Install system deps
       run: |
         sudo apt update
         sudo apt install -y \
@@ -56,9 +62,9 @@ jobs:
           zlib1g-dev
 
     # =========================
-    # PYTHON TOOLCHAIN LOCKED
+    # PYTHON TOOLCHAIN (LOCKED)
     # =========================
-    - name: Install Python toolchain
+    - name: Install toolchain
       run: |
         python -m pip install --upgrade pip setuptools wheel
 
@@ -66,60 +72,31 @@ jobs:
         pip install cython==0.29.37
         pip install python-for-android==2024.1.21
 
-        pip install --only-binary=:all: ninja==1.11.1.1 meson==1.5.1
+        pip install --only-binary=:all: \
+          ninja==1.11.1.1 \
+          meson==1.5.1
 
         pip install appdirs colorama jinja2 packaging toml "sh<2.0,>=1.0"
 
     # =========================
-    # AUTO FIX PROJECT STRUCTURE
+    # CLEAN STATE
     # =========================
-    - name: Auto fix project structure
-      run: |
-        echo "Checking Python entry file..."
-
-        if [ ! -f main.py ]; then
-          echo "ERROR: main.py not found"
-          exit 1
-        fi
-
-        echo "main.py found OK"
-
-    # =========================
-    # AUTO GENERATE BUILDOZER SPEC
-    # =========================
-    - name: Generate buildozer.spec if missing
-      run: |
-        if [ ! -f buildozer.spec ]; then
-          echo "Creating buildozer.spec..."
-          buildozer init
-        fi
-
-        # ensure spec exists
-        if [ ! -f buildozer.spec ]; then
-          echo "FAILED to create buildozer.spec"
-          exit 1
-        fi
-
-        ls -la buildozer.spec
-
-    # =========================
-    # CLEAN BUILD CACHE
-    # =========================
-    - name: Clean build cache
+    - name: Clean build
       run: |
         rm -rf .buildozer || true
 
     # =========================
-    # BUILD APK
+    # BUILD (NO INIT, NO INTERACTIVE EVER)
     # =========================
     - name: Build APK
       run: |
+        set -e
         yes | buildozer -v android debug
 
     # =========================
-    # UPLOAD APK
+    # ARTIFACT
     # =========================
-    - name: Upload APK artifact
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: apk
