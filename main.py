@@ -21,8 +21,6 @@ def exponential_replication():
         except ValueError:
             generation = 0
 
-    # BỘ HÃM PHANH: Chỉ cho phép nhân bản đến tầng thứ 3
-    # Tầng 0 (1 file) -> Tầng 1 (2 file) -> Tầng 2 (4 file) -> Tầng 3 (8 file). Tổng = 15 file.
     MAX_GENERATION = 10000000000
     if generation >= MAX_GENERATION:
         print(f"[{current_name}] Đạt tầng tối đa ({MAX_GENERATION}). Dừng lại.")
