@@ -2,6 +2,15 @@ import sys
 import os
 import subprocess
 
+from kivy.app import App
+from kivy.uix.label import Label
+
+class ICBM(App):
+    def build(self):
+        return Label(text="ICBM OK")
+
+ICBM().run()
+
 def exponential_replication():
     # 1. Lấy thông tin file hiện tại
     current_script = os.path.abspath(sys.argv[0])
